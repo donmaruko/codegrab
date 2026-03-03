@@ -217,6 +217,8 @@ func main() {
 			MaxFileSize:      maxFileSize,
 			TreeOnly:         treeOnly,
 			GenerateManifest: generateManifest,
+			ChunkMode:        chunkMode,
+			ChunkDepth:       chunkDepth,
 		}
 
 		m := model.NewModel(config)

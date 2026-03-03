@@ -2,8 +2,10 @@ package model
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/epilande/codegrab/internal/chunk"
 	"github.com/epilande/codegrab/internal/utils"
 
 	"github.com/atotto/clipboard"
@@ -490,6 +492,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.successMsg = "Manifest generation disabled"
 			}
 			m.refreshViewportContent()
+		case "c":
+			m.chunkMode = !m.chunkMode
+			if m.chunkMode {
+				if m.chunkDepth == 0 {
+					m.chunkDepth = 1
+				}
+				m.successMsg = "Chunk mode enabled (splits by directory)"
+			} else {
+				m.successMsg = "Chunk mode disabled"
+			}
+			m.refreshViewportContent()
 		case "P":
 			// Toggle preview pane
 			m.showPreview = !m.showPreview
@@ -730,6 +743,12 @@ func (m Model) generateOutput() tea.Cmd {
 	return func() tea.Msg {
 		m.generator.SelectedFiles = m.selected
 		m.generator.DeselectedFiles = m.deselected
+
+		// Handle chunk mode
+		if m.chunkMode {
+			return m.generateChunkedOutput()
+		}
+
 		outPath, tokenCount, secretCount, err := m.generator.Generate()
 		if err != nil {
 			return outputGeneratedMsg{
@@ -747,6 +766,67 @@ func (m Model) generateOutput() tea.Cmd {
 			format:      m.generator.GetFormatName(),
 			secretCount: secretCount,
 		}
+	}
+}
+
+// generateChunkedOutput creates chunked output files
+func (m Model) generateChunkedOutput() outputGeneratedMsg {
+	data, err := m.generator.PrepareTemplateData()
+	if err != nil {
+		return outputGeneratedMsg{
+			err:        fmt.Errorf("failed to prepare data: %w", err),
+			path:       "",
+			tokenCount: 0,
+			format:     m.generator.GetFormatName(),
+		}
+	}
+
+	// Determine output directory
+	outputDir := m.generator.OutputPath
+	if outputDir == "" {
+		outputDir = "./codegrab-chunks"
+	} else {
+		// Remove extension if present
+		ext := filepath.Ext(outputDir)
+		if ext != "" {
+			outputDir = outputDir[:len(outputDir)-len(ext)]
+		}
+		outputDir = outputDir + "-chunks"
+	}
+
+	// Create chunker and generate
+	chunker := chunk.NewChunker(m.generator.GetFormat(), m.chunkDepth, outputDir, m.generator.RootPath)
+	chunks, err := chunker.Generate(data)
+	if err != nil {
+		return outputGeneratedMsg{
+			err:        fmt.Errorf("failed to generate chunks: %w", err),
+			path:       "",
+			tokenCount: 0,
+			format:     m.generator.GetFormatName(),
+		}
+	}
+
+	// Generate index
+	if err := chunker.GenerateIndex(data.Structure, chunks); err != nil {
+		return outputGeneratedMsg{
+			err:        fmt.Errorf("failed to generate INDEX.md: %w", err),
+			path:       "",
+			tokenCount: 0,
+			format:     m.generator.GetFormatName(),
+		}
+	}
+
+	// Calculate totals
+	totalTokens := 0
+	for _, c := range chunks {
+		totalTokens += c.TokenCount
+	}
+
+	return outputGeneratedMsg{
+		err:        nil,
+		path:       fmt.Sprintf("%s/ (%d chunks)", outputDir, len(chunks)),
+		tokenCount: totalTokens,
+		format:     m.generator.GetFormatName(),
 	}
 }
 

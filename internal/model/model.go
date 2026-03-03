@@ -72,6 +72,8 @@ type Model struct {
 	currentPreviewIsDir   bool
 	treeOnly              bool
 	generateManifest      bool
+	chunkMode             bool
+	chunkDepth            int
 	isGenerating          bool
 	lastKeyTime           int64  // Last key press time
 	lastKey               string // Last key pressed
@@ -92,6 +94,8 @@ type Config struct {
 	ShowTokenCount   bool
 	TreeOnly         bool
 	GenerateManifest bool
+	ChunkMode        bool
+	ChunkDepth       int
 }
 
 // updatePreview reads the content of the file at the cursor and updates the preview viewport
@@ -234,6 +238,8 @@ func NewModel(config Config) Model {
 		showPreview:      false,
 		treeOnly:         config.TreeOnly,
 		generateManifest: config.GenerateManifest,
+		chunkMode:        config.ChunkMode,
+		chunkDepth:       config.ChunkDepth,
 		tokenCache:       NewTokenCache(),
 	}
 }

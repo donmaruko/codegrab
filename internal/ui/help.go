@@ -23,6 +23,7 @@ Selection & Output:
   S                        Toggle secret redaction (Default: On)
   T                        Toggle tree-only mode (structure without contents)
   m                        Toggle manifest generation (file byte/line offsets)
+  c                        Toggle chunk mode (split output by directory)
 
 View Options:
   i                        Toggle .gitignore filter

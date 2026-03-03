@@ -337,7 +337,7 @@ func (m Model) renderFooter() string {
 	} else if m.successMsg != "" {
 		leftParts = append(leftParts, ui.GetStyleSuccess().Render(m.successMsg))
 	} else {
-		helpText := "Press '?' for help | Select: space | Generate: ctrl+g | Copy: y | Manifest: m"
+		helpText := "Press '?' for help | space select | ctrl+g generate | y copy | m manifest | c chunk"
 		leftParts = append(leftParts, ui.GetStyleHelp().Render(helpText))
 	}
 
@@ -363,6 +363,11 @@ func (m Model) renderFooter() string {
 	// Manifest status
 	if m.generateManifest {
 		rightParts = append(rightParts, ui.GetStyleInfo().Render(" | Manifest"))
+	}
+
+	// Chunk status
+	if m.chunkMode {
+		rightParts = append(rightParts, ui.GetStyleInfo().Render(" | Chunk"))
 	}
 
 	leftContent := lipgloss.JoinHorizontal(lipgloss.Top, leftParts...)

@@ -358,6 +358,11 @@ func (m Model) renderFooter() string {
 		rightParts = append(rightParts, ui.GetStyleInfo().Render(" | 🌳 Tree"))
 	}
 
+	// Manifest status
+	if m.generateManifest {
+		rightParts = append(rightParts, ui.GetStyleInfo().Render(" | Manifest"))
+	}
+
 	leftContent := lipgloss.JoinHorizontal(lipgloss.Top, leftParts...)
 	rightContent := lipgloss.JoinHorizontal(lipgloss.Top, rightParts...)
 

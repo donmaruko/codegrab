@@ -71,6 +71,7 @@ type Model struct {
 	currentPreviewContent string
 	currentPreviewIsDir   bool
 	treeOnly              bool
+	generateManifest      bool
 	lastKeyTime           int64  // Last key press time
 	lastKey               string // Last key pressed
 	tokenCache            *TokenCache
@@ -228,9 +229,10 @@ func NewModel(config Config) Model {
 			Height: 10,
 		},
 		cursor:         0,
-		showTokenCount: config.ShowTokenCount,
-		showPreview:    false,
-		treeOnly:       config.TreeOnly,
-		tokenCache:     NewTokenCache(),
+		showTokenCount:   config.ShowTokenCount,
+		showPreview:      false,
+		treeOnly:         config.TreeOnly,
+		generateManifest: config.GenerateManifest,
+		tokenCache:       NewTokenCache(),
 	}
 }

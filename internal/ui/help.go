@@ -22,6 +22,7 @@ Selection & Output:
   F                        Cycle through output formats (md, txt, xml)
   S                        Toggle secret redaction (Default: On)
   T                        Toggle tree-only mode (structure without contents)
+  M                        Toggle manifest generation (file byte/line offsets)
 
 View Options:
   i                        Toggle .gitignore filter
@@ -68,6 +69,7 @@ const UsageText = `Usage:
     --show-tokens            Show the number of tokens for each file in file tree.
     --icons                  Display Nerd Font icons.
     -T, --tree-only          Output only file structure without contents.
+    -m, --manifest           Generate manifest.json with file byte/line offsets.
 
   Examples:
     # Run interactively in the current directory

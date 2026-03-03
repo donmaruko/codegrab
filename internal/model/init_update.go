@@ -480,6 +480,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.successMsg = "Tree-only mode disabled (full output)"
 			}
 			m.refreshViewportContent()
+		case "M":
+			m.generateManifest = !m.generateManifest
+			m.generator.SetManifestMode(m.generateManifest)
+			if m.generateManifest {
+				m.successMsg = "Manifest generation enabled"
+			} else {
+				m.successMsg = "Manifest generation disabled"
+			}
+			m.refreshViewportContent()
 		case "P":
 			// Toggle preview pane
 			m.showPreview = !m.showPreview

@@ -72,6 +72,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case outputGeneratedMsg:
 		m.isGrabbing = true
+		m.isGenerating = false
 		if msg.err != nil {
 			m.err = msg.err
 			m.successMsg = ""
@@ -480,7 +481,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.successMsg = "Tree-only mode disabled (full output)"
 			}
 			m.refreshViewportContent()
-		case "M":
+		case "m":
 			m.generateManifest = !m.generateManifest
 			m.generator.SetManifestMode(m.generateManifest)
 			if m.generateManifest {
@@ -535,6 +536,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "ctrl+g":
 			// Generate output
+			m.isGenerating = true
+			m.refreshViewportContent()
 			return m, m.generateOutput()
 		}
 	}

@@ -72,6 +72,7 @@ type Model struct {
 	currentPreviewIsDir   bool
 	treeOnly              bool
 	generateManifest      bool
+	isGenerating          bool
 	lastKeyTime           int64  // Last key press time
 	lastKey               string // Last key pressed
 	tokenCache            *TokenCache

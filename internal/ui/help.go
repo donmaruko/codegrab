@@ -22,7 +22,7 @@ Selection & Output:
   F                        Cycle through output formats (md, txt, xml)
   S                        Toggle secret redaction (Default: On)
   T                        Toggle tree-only mode (structure without contents)
-  M                        Toggle manifest generation (file byte/line offsets)
+  m                        Toggle manifest generation (file byte/line offsets)
 
 View Options:
   i                        Toggle .gitignore filter

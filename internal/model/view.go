@@ -327,7 +327,9 @@ func (m Model) renderFooter() string {
 	var rightParts []string
 
 	// Left side: Status/Error/Help prompts
-	if m.isSearching {
+	if m.isGenerating {
+		leftParts = append(leftParts, ui.GetStyleInfo().Render("Generating..."))
+	} else if m.isSearching {
 		searchHelp := "Next: ctrl+n | Prev: ctrl+p | Select: tab | Exit: esc"
 		leftParts = append(leftParts, ui.GetStyleHelp().Render(searchHelp))
 	} else if m.err != nil {
@@ -335,7 +337,7 @@ func (m Model) renderFooter() string {
 	} else if m.successMsg != "" {
 		leftParts = append(leftParts, ui.GetStyleSuccess().Render(m.successMsg))
 	} else {
-		helpText := "Press '?' for help | Select: space | Generate: ctrl+g | Copy: y"
+		helpText := "Press '?' for help | Select: space | Generate: ctrl+g | Copy: y | Manifest: m"
 		leftParts = append(leftParts, ui.GetStyleHelp().Render(helpText))
 	}
 

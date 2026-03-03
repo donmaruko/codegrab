@@ -493,13 +493,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.refreshViewportContent()
 		case "c":
-			m.chunkMode = !m.chunkMode
-			if m.chunkMode {
-				if m.chunkDepth == 0 {
-					m.chunkDepth = 1
-				}
-				m.successMsg = "Chunk mode enabled (splits by directory)"
+			// Cycle through: off -> depth 1 -> depth 2 -> depth 3 -> off
+			if !m.chunkMode {
+				m.chunkMode = true
+				m.chunkDepth = 1
+				m.successMsg = "Chunk mode: depth 1 (top-level dirs)"
+			} else if m.chunkDepth < 3 {
+				m.chunkDepth++
+				m.successMsg = fmt.Sprintf("Chunk mode: depth %d", m.chunkDepth)
 			} else {
+				m.chunkMode = false
+				m.chunkDepth = 0
 				m.successMsg = "Chunk mode disabled"
 			}
 			m.refreshViewportContent()

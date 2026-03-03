@@ -367,7 +367,7 @@ func (m Model) renderFooter() string {
 
 	// Chunk status
 	if m.chunkMode {
-		rightParts = append(rightParts, ui.GetStyleInfo().Render(" | Chunk"))
+		rightParts = append(rightParts, ui.GetStyleInfo().Render(fmt.Sprintf(" | Chunk:%d", m.chunkDepth)))
 	}
 
 	leftContent := lipgloss.JoinHorizontal(lipgloss.Top, leftParts...)

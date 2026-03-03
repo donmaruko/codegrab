@@ -70,6 +70,8 @@ const UsageText = `Usage:
     --icons                  Display Nerd Font icons.
     -T, --tree-only          Output only file structure without contents.
     -m, --manifest           Generate manifest.json with file byte/line offsets.
+    --chunk                  Split output into chunks by directory (creates INDEX.md).
+    --chunk-depth <n>        Directory depth for chunking (default: 1 = top-level dirs).
 
   Examples:
     # Run interactively in the current directory

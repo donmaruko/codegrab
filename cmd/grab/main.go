@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/epilande/codegrab/internal/chunk"
 	"github.com/epilande/codegrab/internal/dependencies"
 	"github.com/epilande/codegrab/internal/filesystem"
 	"github.com/epilande/codegrab/internal/generator"
@@ -52,6 +53,8 @@ func main() {
 	var showTokenCount bool
 	var treeOnly bool
 	var generateManifest bool
+	var chunkMode bool
+	var chunkDepth int
 
 	flag.BoolVar(&showHelp, "help", false, "Display help information")
 	flag.BoolVar(&showHelp, "h", false, "Display help information (shorthand)")
@@ -99,6 +102,9 @@ func main() {
 
 	flag.BoolVar(&generateManifest, "manifest", false, "Generate manifest.json with file byte/line offsets")
 	flag.BoolVar(&generateManifest, "m", false, "Generate manifest.json (shorthand)")
+
+	flag.BoolVar(&chunkMode, "chunk", false, "Split output into chunks by directory")
+	flag.IntVar(&chunkDepth, "chunk-depth", 1, "Directory depth for chunking (default: 1 = top-level dirs)")
 
 	flag.Parse()
 
@@ -195,7 +201,7 @@ func main() {
 	}
 
 	if nonInteractive {
-		runNonInteractive(root, filterMgr, outputPath, useTempFile, formatName, skipRedaction, resolveDeps, maxDepth, maxFileSize, treeOnly, generateManifest)
+		runNonInteractive(root, filterMgr, outputPath, useTempFile, formatName, skipRedaction, resolveDeps, maxDepth, maxFileSize, treeOnly, generateManifest, chunkMode, chunkDepth)
 	} else {
 		config := model.Config{
 			RootPath:         root,
@@ -223,7 +229,7 @@ func main() {
 }
 
 // runNonInteractive processes files and generates output without user interaction
-func runNonInteractive(rootPath string, filterMgr *filesystem.FilterManager, outputPath string, useTempFile bool, formatName string, skipRedaction bool, resolveDeps bool, maxDepth int, maxFileSize int64, treeOnly bool, generateManifest bool) {
+func runNonInteractive(rootPath string, filterMgr *filesystem.FilterManager, outputPath string, useTempFile bool, formatName string, skipRedaction bool, resolveDeps bool, maxDepth int, maxFileSize int64, treeOnly bool, generateManifest bool, chunkMode bool, chunkDepth int) {
 	gitIgnoreMgr, err := filesystem.NewGitIgnoreManager(rootPath)
 	if err != nil {
 		log.Fatalf("Error reading .gitignore: %v\n", err)
@@ -316,18 +322,58 @@ func runNonInteractive(rootPath string, filterMgr *filesystem.FilterManager, out
 
 	gen.SelectedFiles = selectedFiles
 
+	// Handle chunk mode
+	if chunkMode {
+		// Determine output directory
+		chunkOutputDir := outputPath
+		if chunkOutputDir == "" {
+			chunkOutputDir = "./codegrab-chunks"
+		}
+
+		// Prepare template data
+		data, err := gen.PrepareTemplateData()
+		if err != nil {
+			log.Fatalf("Error preparing data: %v\n", err)
+		}
+
+		// Create chunker and generate chunks
+		chunker := chunk.NewChunker(format, chunkDepth, chunkOutputDir, rootPath)
+		chunks, err := chunker.Generate(data)
+		if err != nil {
+			log.Fatalf("Error generating chunks: %v\n", err)
+		}
+
+		// Generate index
+		if err := chunker.GenerateIndex(data.Structure, chunks); err != nil {
+			log.Fatalf("Error generating INDEX.md: %v\n", err)
+		}
+
+		// Calculate totals
+		totalFiles := 0
+		totalTokens := 0
+		for _, c := range chunks {
+			totalFiles += c.FileCount
+			totalTokens += c.TokenCount
+		}
+
+		fmt.Printf("Generated %d chunks in %s/ (%d files, %s tokens)\n",
+			len(chunks), chunkOutputDir, totalFiles, utils.FormatTokenCount(totalTokens))
+		fmt.Printf("See %s/INDEX.md for the chunk index\n", chunkOutputDir)
+		return
+	}
+
 	outputFilePath, tokenCount, secretCount, err := gen.Generate()
 	if err != nil {
 		log.Fatalf("Error generating output: %v\n", err)
 	}
 
-	fmt.Printf("✅ Generated %s (%d tokens)\n", outputFilePath, tokenCount)
+	fmt.Printf("Generated %s (%d tokens)\n", outputFilePath, tokenCount)
 
 	if secretCount > 0 && skipRedaction {
-		fmt.Fprintf(os.Stderr, "⚠️ WARNING: %d secrets detected in the output and redaction was skipped!\n", secretCount)
+		fmt.Fprintf(os.Stderr, "WARNING: %d secrets detected in the output and redaction was skipped!\n", secretCount)
 	} else if secretCount > 0 && !skipRedaction {
-		fmt.Fprintf(os.Stderr, "🛡️ INFO: %d secrets detected and redacted in the output.\n", secretCount)
+		fmt.Fprintf(os.Stderr, "INFO: %d secrets detected and redacted in the output.\n", secretCount)
 	} else {
-		fmt.Println("🛡️ No secrets detected in the output.")
+		fmt.Println("No secrets detected in the output.")
 	}
 }

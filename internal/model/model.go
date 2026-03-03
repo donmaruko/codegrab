@@ -77,18 +77,19 @@ type Model struct {
 }
 
 type Config struct {
-	FilterMgr      *filesystem.FilterManager
-	RootPath       string
-	OutputPath     string
-	Format         string
-	MaxDepth       int
-	MaxFileSize    int64
-	UseTempFile    bool
-	SkipRedaction  bool
-	ResolveDeps    bool
-	ShowIcons      bool
-	ShowTokenCount bool
-	TreeOnly       bool
+	FilterMgr        *filesystem.FilterManager
+	RootPath         string
+	OutputPath       string
+	Format           string
+	MaxDepth         int
+	MaxFileSize      int64
+	UseTempFile      bool
+	SkipRedaction    bool
+	ResolveDeps      bool
+	ShowIcons        bool
+	ShowTokenCount   bool
+	TreeOnly         bool
+	GenerateManifest bool
 }
 
 // updatePreview reads the content of the file at the cursor and updates the preview viewport
@@ -196,6 +197,7 @@ func NewModel(config Config) Model {
 	gen.SetFormat(format)
 	gen.SetRedactionMode(!config.SkipRedaction)
 	gen.SetTreeOnlyMode(config.TreeOnly)
+	gen.SetManifestMode(config.GenerateManifest)
 
 	moduleName := dependencies.ReadGoModFile(config.RootPath)
 

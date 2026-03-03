@@ -185,3 +185,15 @@ func (f *XMLFormat) Extension() string {
 func (f *XMLFormat) Name() string {
 	return "xml"
 }
+
+// FilePattern returns a regex pattern to find file boundaries in XML output.
+// Matches: <file path="path/to/file.go"
+func (f *XMLFormat) FilePattern() string {
+	return `<file path="([^"]+)"`
+}
+
+// StructurePattern returns a regex pattern to find the structure section in XML output.
+// Matches the filesystem element.
+func (f *XMLFormat) StructurePattern() string {
+	return `(?s)<filesystem>.*?</filesystem>`
+}

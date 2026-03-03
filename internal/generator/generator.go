@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,26 +9,29 @@ import (
 
 	"github.com/epilande/codegrab/internal/cache"
 	"github.com/epilande/codegrab/internal/filesystem"
+	"github.com/epilande/codegrab/internal/manifest"
 	"github.com/epilande/codegrab/internal/secrets"
 	"github.com/epilande/codegrab/internal/utils"
 )
 
 // Generator organizes how we generate the output in different formats
 type Generator struct {
-	format          Format
-	SecretScanner   secrets.Scanner
-	SelectedFiles   map[string]bool
-	DeselectedFiles map[string]bool
-	GitIgnoreMgr    *filesystem.GitIgnoreManager
-	FilterMgr       *filesystem.FilterManager
-	OutputPath      string
-	RootPath        string
-	UseTempFile     bool
-	UseGitIgnore    bool
-	ShowHidden      bool
-	RedactSecrets   bool
-	TreeOnly        bool
-	lastSecretCount int
+	format           Format
+	SecretScanner    secrets.Scanner
+	SelectedFiles    map[string]bool
+	DeselectedFiles  map[string]bool
+	GitIgnoreMgr     *filesystem.GitIgnoreManager
+	FilterMgr        *filesystem.FilterManager
+	OutputPath       string
+	RootPath         string
+	UseTempFile      bool
+	UseGitIgnore     bool
+	ShowHidden       bool
+	RedactSecrets    bool
+	TreeOnly         bool
+	GenerateManifest bool
+	lastSecretCount  int
+	lastTemplateData *TemplateData
 }
 
 // NewGenerator constructs a generator with default settings
@@ -81,6 +85,11 @@ func (g *Generator) SetTreeOnlyMode(treeOnly bool) {
 	g.TreeOnly = treeOnly
 }
 
+// SetManifestMode enables or disables manifest generation.
+func (g *Generator) SetManifestMode(generateManifest bool) {
+	g.GenerateManifest = generateManifest
+}
+
 // Generate creates an output file in the specified format
 func (g *Generator) Generate() (string, int, int, error) {
 	if len(g.SelectedFiles) == 0 {
@@ -95,6 +104,9 @@ func (g *Generator) Generate() (string, int, int, error) {
 	if err != nil {
 		return "", 0, g.lastSecretCount, fmt.Errorf("failed to prepare template data: %w", err)
 	}
+
+	// Store template data for manifest generation
+	g.lastTemplateData = &data
 
 	content, tokenCount, err := g.format.Render(data)
 	if err != nil {
@@ -116,6 +128,14 @@ func (g *Generator) Generate() (string, int, int, error) {
 		}
 		outputPath = tmpFile.Name()
 		displayPath = outputPath
+
+		// Generate manifest for temp file
+		if g.GenerateManifest {
+			manifestPath := outputPath + ".manifest.json"
+			if err := g.writeManifest(content, manifestPath); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to write manifest: %v\n", err)
+			}
+		}
 	} else {
 		if g.OutputPath != "" {
 			if !strings.HasSuffix(g.OutputPath, g.format.Extension()) {
@@ -137,6 +157,16 @@ func (g *Generator) Generate() (string, int, int, error) {
 		}
 
 		outputPath = absPath
+
+		// Generate manifest alongside output file
+		if g.GenerateManifest {
+			// Replace extension with .manifest.json
+			ext := g.format.Extension()
+			manifestPath := strings.TrimSuffix(absPath, ext) + ".manifest.json"
+			if err := g.writeManifest(content, manifestPath); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to write manifest: %v\n", err)
+			}
+		}
 	}
 
 	if err := utils.CopyFileObject(outputPath); err != nil {
@@ -144,6 +174,49 @@ func (g *Generator) Generate() (string, int, int, error) {
 	}
 
 	return displayPath, tokenCount, g.lastSecretCount, nil
+}
+
+// writeManifest builds and writes a manifest file for the given content.
+func (g *Generator) writeManifest(content string, manifestPath string) error {
+	if g.lastTemplateData == nil {
+		return fmt.Errorf("no template data available")
+	}
+
+	// Build format info - check if format implements ManifestFormat
+	formatInfo := manifest.FormatInfo{
+		Name: g.format.Name(),
+	}
+
+	if mf, ok := g.format.(ManifestFormat); ok {
+		formatInfo.FilePattern = mf.FilePattern()
+		formatInfo.StructurePattern = mf.StructurePattern()
+	}
+
+	// Convert FileData to FileInfo
+	files := make([]manifest.FileInfo, len(g.lastTemplateData.Files))
+	for i, f := range g.lastTemplateData.Files {
+		files[i] = manifest.FileInfo{
+			Path:     f.Path,
+			Language: f.Language,
+		}
+	}
+
+	builder := manifest.NewBuilder()
+	m, err := builder.BuildFromContent(content, formatInfo, files)
+	if err != nil {
+		return fmt.Errorf("failed to build manifest: %w", err)
+	}
+
+	manifestJSON, err := json.MarshalIndent(m, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal manifest: %w", err)
+	}
+
+	if err := os.WriteFile(manifestPath, manifestJSON, 0644); err != nil {
+		return fmt.Errorf("failed to write manifest file: %w", err)
+	}
+
+	return nil
 }
 
 // GenerateString returns the rendered content as a string along with counts

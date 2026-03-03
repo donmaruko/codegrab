@@ -51,6 +51,18 @@ func (f *TxtFormat) Name() string {
 	return "text"
 }
 
+// FilePattern returns a regex pattern to find file boundaries in text output.
+// Matches: FILE: path/to/file.go
+func (f *TxtFormat) FilePattern() string {
+	return `(?m)^FILE: (.+)$`
+}
+
+// StructurePattern returns a regex pattern to find the structure section in text output.
+// Matches the PROJECT STRUCTURE section.
+func (f *TxtFormat) StructurePattern() string {
+	return `(?s)^=+\nPROJECT STRUCTURE\n=+\n.*?(?:=+\nPROJECT FILES|$)`
+}
+
 // The base template for our generated plain text
 const txtTemplate = `{{separator}}
 PROJECT STRUCTURE

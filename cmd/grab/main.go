@@ -51,6 +51,7 @@ func main() {
 	var showIcons bool
 	var showTokenCount bool
 	var treeOnly bool
+	var generateManifest bool
 
 	flag.BoolVar(&showHelp, "help", false, "Display help information")
 	flag.BoolVar(&showHelp, "h", false, "Display help information (shorthand)")
@@ -95,6 +96,9 @@ func main() {
 
 	flag.BoolVar(&treeOnly, "tree-only", false, "Output only file structure without contents")
 	flag.BoolVar(&treeOnly, "T", false, "Output only file structure (shorthand)")
+
+	flag.BoolVar(&generateManifest, "manifest", false, "Generate manifest.json with file byte/line offsets")
+	flag.BoolVar(&generateManifest, "m", false, "Generate manifest.json (shorthand)")
 
 	flag.Parse()
 
@@ -191,21 +195,22 @@ func main() {
 	}
 
 	if nonInteractive {
-		runNonInteractive(root, filterMgr, outputPath, useTempFile, formatName, skipRedaction, resolveDeps, maxDepth, maxFileSize, treeOnly)
+		runNonInteractive(root, filterMgr, outputPath, useTempFile, formatName, skipRedaction, resolveDeps, maxDepth, maxFileSize, treeOnly, generateManifest)
 	} else {
 		config := model.Config{
-			RootPath:       root,
-			FilterMgr:      filterMgr,
-			OutputPath:     outputPath,
-			UseTempFile:    useTempFile,
-			Format:         formatName,
-			SkipRedaction:  skipRedaction,
-			ResolveDeps:    resolveDeps,
-			ShowIcons:      showIcons,
-			ShowTokenCount: showTokenCount,
-			MaxDepth:       maxDepth,
-			MaxFileSize:    maxFileSize,
-			TreeOnly:       treeOnly,
+			RootPath:         root,
+			FilterMgr:        filterMgr,
+			OutputPath:       outputPath,
+			UseTempFile:      useTempFile,
+			Format:           formatName,
+			SkipRedaction:    skipRedaction,
+			ResolveDeps:      resolveDeps,
+			ShowIcons:        showIcons,
+			ShowTokenCount:   showTokenCount,
+			MaxDepth:         maxDepth,
+			MaxFileSize:      maxFileSize,
+			TreeOnly:         treeOnly,
+			GenerateManifest: generateManifest,
 		}
 
 		m := model.NewModel(config)
@@ -218,7 +223,7 @@ func main() {
 }
 
 // runNonInteractive processes files and generates output without user interaction
-func runNonInteractive(rootPath string, filterMgr *filesystem.FilterManager, outputPath string, useTempFile bool, formatName string, skipRedaction bool, resolveDeps bool, maxDepth int, maxFileSize int64, treeOnly bool) {
+func runNonInteractive(rootPath string, filterMgr *filesystem.FilterManager, outputPath string, useTempFile bool, formatName string, skipRedaction bool, resolveDeps bool, maxDepth int, maxFileSize int64, treeOnly bool, generateManifest bool) {
 	gitIgnoreMgr, err := filesystem.NewGitIgnoreManager(rootPath)
 	if err != nil {
 		log.Fatalf("Error reading .gitignore: %v\n", err)
@@ -307,6 +312,7 @@ func runNonInteractive(rootPath string, filterMgr *filesystem.FilterManager, out
 	gen.SetFormat(format)
 	gen.SetRedactionMode(!skipRedaction)
 	gen.SetTreeOnlyMode(treeOnly)
+	gen.SetManifestMode(generateManifest)
 
 	gen.SelectedFiles = selectedFiles
 

@@ -39,6 +39,18 @@ func (f *MarkdownFormat) Name() string {
 	return "markdown"
 }
 
+// FilePattern returns a regex pattern to find file boundaries in markdown output.
+// Matches: ## File: `path/to/file.go`
+func (f *MarkdownFormat) FilePattern() string {
+	return "(?m)^## File: `([^`]+)`"
+}
+
+// StructurePattern returns a regex pattern to find the structure section in markdown output.
+// Matches the Project Structure section including the code block.
+func (f *MarkdownFormat) StructurePattern() string {
+	return "(?s)^# Project Structure\\n\\n```\\n.*?```"
+}
+
 // The base template for our generated markdown
 const markdownTemplate = `# Project Structure
 

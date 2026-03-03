@@ -26,3 +26,16 @@ type Format interface {
 	// Name returns the name of the format
 	Name() string
 }
+
+// ManifestFormat is optionally implemented by formats that can generate manifests.
+// Formats implementing this interface provide regex patterns to find file boundaries
+// in the rendered output, enabling manifest generation.
+type ManifestFormat interface {
+	Format
+	// FilePattern returns a regex pattern to find file boundaries in the rendered output.
+	// The pattern should have a capture group for the file path.
+	FilePattern() string
+	// StructurePattern returns a regex pattern to find the structure section boundaries.
+	// Returns empty string if the format doesn't have a distinct structure section.
+	StructurePattern() string
+}
